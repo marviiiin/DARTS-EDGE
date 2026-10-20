@@ -1,0 +1,33 @@
+# Model weights (too large for git)
+models/*.weights
+models/*.engine
+models/*.onnx
+models/*.pth
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Dashboard results
+dashboard_results/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Videos
+*.MP4
+*.mp4
+*.avi
+
+# Backup files
+*.bak
+*.bak2
+*.old

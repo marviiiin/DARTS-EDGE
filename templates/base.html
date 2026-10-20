@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {% block head %}
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+        <title>{% block title %}Highway Incidents Detection Platform{% endblock %}</title>
+        <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='icons8-UAV-64.png') }}">      
+        {% block styles %}
+            <!-- Bootstrap CSS -->
+            {{ bootstrap.load_css() }}
+        {% endblock %}  
+        <style>
+          .my-clicked-button {
+              font-weight: bold;
+              color: #006747 !important;
+              font-size: 22px;
+          }
+          .my-no-click-button {
+            font-weight: normal;
+            color: grey !important; 
+            font-size: 22px;
+          }
+        </style>  
+        {% endblock %}
+    </head>
+    <body>
+        <!-- Your page content -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+          <a class="navbar-brand" href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='icons8-UAV-64.png') }}" alt="appLogo" style="height: 40px;">
+          </a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              <i class="fas fa-bars"></i>
+              <!-- <span class="navbar-toggler-icon"></span> -->
+          </button>     
+          <div class="collapse navbar-collapse" id="navbarNav">
+              <ul class="navbar-nav mr-auto">
+                <li class="nav-item {{ 'active' if active_page == 'detection' else '' }}">
+                  <a class="nav-link {{ 'my-clicked-button' if active_page == 'detection' else 'my-no-click-button' }}" href="{{ url_for('detection') }}">Detection</a>
+                </li>
+                
+                <li class="nav-item {{ 'active' if active_page == 'history' else '' }}">
+                  <a class="nav-link {{ 'my-clicked-button' if active_page == 'history' else 'my-no-click-button' }}" href="{{ url_for('history') }}">History</a>
+                </li>
+
+                <li class="nav-item {{ 'active' if active_page == 'logs' else '' }}">
+                  <a class="nav-link {{ 'my-clicked-button' if active_page == 'logs' else 'my-no-click-button' }}" href="{{ url_for('logs') }}">Logs</a>
+                </li>
+
+                <li class="nav-item {{ 'active' if active_page == 'realtime' else '' }}">
+                  <a class="nav-link {{ 'my-clicked-button' if active_page == 'realtime' else 'my-no-click-button' }}" href="{{ url_for('realtime') }}">Real-Time</a>
+                </li>
+              </ul>
+              <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'my-clicked-button' if active_page == 'logout' else 'my-no-click-button' }}" href="#">Login as: {{ current_user.get_id() }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'my-clicked-button' if active_page == 'logout' else 'my-no-click-button' }}" href="{{ url_for('logout') }}">Logout</a>
+                </li>
+                {% else %}
+                <li class="nav-item {{ 'active' if active_page == 'login' else '' }}">
+                    <a class="nav-link {{ 'my-clicked-button' if active_page == 'login' else 'my-no-click-button' }}" href="{{ url_for('login') }}">Login</a>
+                </li>
+                {% endif %}
+            </ul>
+          </div>
+      </nav>
+
+        {% block content %}{% endblock %}
+
+        <div class="container mt-3 mb-3">
+        <hr class="border-success my-3">
+        <div class="row">
+          <div class="col-6 text-left d-flex align-items-center">
+            <div>
+              <p>For more details, please refer to: </p>
+              <p>
+                <a href="https://www.sum-lab.org/" target="_blank">USF Smart Urban Mobility Laboratory (SUM-Lab)</a>
+              </p>
+              <!-- <p>Version: V1.0.0</p> -->
+            </div>
+          </div>
+          <div class="col-6 text-right">
+            <img src="{{ url_for('static', filename='usf-sum_orig.png') }}" alt="usf-sum-logo" style="max-width: 100%; height: 70px; object-fit: contain;">
+          </div>
+        </div>
+      </div>
+
+        {% block scripts %}
+            <!-- Optional JavaScript -->
+            {{ bootstrap.load_js() }}
+            <!-- To serve navigation bar -->
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                  document.querySelector('.navbar-toggler').addEventListener('click', function() {
+                    var icon = this.querySelector('i');
+                    if (icon.classList.contains('fa-bars')) {
+                      icon.classList.remove('fa-bars');
+                      icon.classList.add('fa-times');
+                    } else {
+                      icon.classList.remove('fa-times');
+                      icon.classList.add('fa-bars');
+                    }
+                  });
+                });
+            </script>
+
+            <!-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
+
+              
+        {% endblock %}
+    </body>
+</html>

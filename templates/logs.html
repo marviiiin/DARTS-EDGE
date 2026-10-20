@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Highway Incidents Detection Platform{% endblock %}
+
+{% block content %}
+<div class="container mt-3 mb-3">
+  <h2 class="text-center">Automatic Highway Incidents Detection Platform</h2>
+  <h2 class="text-center mb-3">Logs</h2>
+  <hr class="border-success my-3">
+  <div class="form-group">
+    <label for="mainOutput">Main Process</label>
+    <textarea class="form-control" id="mainOutput" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="streamCaptureLogs">Stream Capture Process</label>
+    <textarea class="form-control" id="streamCaptureLogs" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="videoProcessingLogs">Video Processing Process 1</label>
+    <textarea class="form-control" id="videoProcessingLogs1" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="videoProcessingLogs">Video Processing Process 2</label>
+    <textarea class="form-control" id="videoProcessingLogs2" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="videoProcessingLogs">Video Processing Process 3</label>
+    <textarea class="form-control" id="videoProcessingLogs3" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="gpsFetchResults">GPS Fetch Process</label>
+    <textarea class="form-control" id="gpsFetchResults" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="detectionResultsLogs">Detection Results Without GPS Coordinates</label>
+    <textarea class="form-control" id="detectionResultsLogs" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+  <div class="form-group">
+    <label for="emitOutputFiles">Reading Output of Each Process Thread</label>
+    <textarea class="form-control" id="emitOutputFiles" rows="4" placeholder="Formatted Outputs..."></textarea>
+  </div>
+
+  <div class="d-flex justify-content-center align-items-center" style="height: auto;">
+    <button type="button" class="btn btn-danger w-auto my-2" id="restartServer">Restart Web Server</button>
+  </div>
+
+  </div>
+  
+{% endblock %}
+
+
+{% block scripts %}
+  {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        document.addEventListener('DOMContentLoaded', () => {
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+            var messageShown = false;
+            socket.on('connect', () => {
+                socket.emit('join', {room: 'logs'});
+            });
+            socket.on('mainOutput', (data) => {
+              // console.log('mainOutput' + data.message);
+              const programStatus2 = document.getElementById('mainOutput');
+              programStatus2.value = data.message + '\n';
+            });
+            socket.on('videoProcessingLogs1', (data) => {
+              const videoProcessingProcess1 = document.getElementById('videoProcessingLogs1');
+              videoProcessingProcess1.value = data.message;
+            });
+            socket.on('videoProcessingLogs2', (data) => {
+              const videoProcessingProcess2 = document.getElementById('videoProcessingLogs2');
+              videoProcessingProcess2.value = data.message;
+            });
+            socket.on('videoProcessingLogs3', (data) => {
+              const videoProcessingProcess3 = document.getElementById('videoProcessingLogs3');
+              videoProcessingProcess3.value = data.message;
+            });
+            socket.on('streamCaptureLogs', (data) => {
+              // console.log('streamCaptureLogs' + data.message); // 查看接收到的数据
+              const streamCaptureProcess = document.getElementById('streamCaptureLogs');
+              streamCaptureProcess.value = data.message;
+            });
+            socket.on('gpsFetchResults', (data) => {
+              // console.log('gpsFetchResults' + data.message); // 查看接收到的数据
+              const streamCaptureProcess = document.getElementById('gpsFetchResults');
+              streamCaptureProcess.value = data.message;
+            });
+            socket.on('detectionResultsLogs', (data) => {
+              // console.log(data); // 查看接收到的数据
+              document.getElementById('detectionResultsLogs').value = data.message + '\n';
+            });
+            socket.on('emitOutputFiles', (data) => {
+              // console.log(data); // 查看接收到的数据
+              document.getElementById('emitOutputFiles').value = data.message + '\n';
+            });
+            socket.on('clear', () => {
+                // 查找文档中所有的textarea元素
+                var textareas = document.querySelectorAll('textarea');
+                // 遍历每一个textarea，并清空其内容
+                textareas.forEach(function(textarea) {
+                    textarea.value = '';
+                });
+          });
+        });
+
+        document.getElementById("restartServer").addEventListener("click", function() {
+            fetch('/restart-server', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+
+
+{% endblock %}

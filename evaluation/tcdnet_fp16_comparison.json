@@ -1,0 +1,16 @@
+{
+  "n_images": 200,
+  "agreement": 200,
+  "agreement_pct": 100.0,
+  "fp32_distribution": {
+    "0": 173,
+    "1": 0,
+    "2": 27
+  },
+  "fp16_distribution": {
+    "0": 173,
+    "1": 0,
+    "2": 27
+  },
+  "n_disagreements": 0
+}

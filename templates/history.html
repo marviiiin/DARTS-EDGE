@@ -1,0 +1,533 @@
+{% extends 'base.html' %}
+{% block head %}
+{{ super() }}  <!-- 保留 base.html 中的原始 head 内容 -->
+<link rel="shortcut icon" href="{{ url_for('static', filename='icons8-UAV-64.png') }}">
+<!-- Style settings for detectionResults div area -->
+<style>
+  #detectionResults {
+      display: block;
+      width: 100%; /* 宽度调整为100%，以便自适应容器宽度 */
+      padding: .375rem .75rem; /* Bootstrap form-control的标准填充 */
+      font-size: 0.9rem; /* 标准字体大小 */
+      line-height: 1.5; /* 标准行高 */
+      color: black; /* Bootstrap form-control的标准文字颜色: #495057 */
+      background-color: #fff; /* 背景色 */
+      background-clip: padding-box;
+      border: 1px solid #ced4da; /* 边框样式 */
+      border-radius: .25rem; /* 圆角边框 */
+      overflow-y: auto; /* 允许垂直滚动 */
+      height: auto; /* 高度自动，根据内容调整 */
+      min-height: 40px; /* 最小高度，可以根据需要调整 */
+      max-height: 40px;
+      white-space: pre-wrap; /* 保持空白符的显示，类似于textarea的行为 */
+      /* font-family: monospace; 使用等宽字体 */
+  }
+  .detected {
+      color: red; /* 检测到的文本颜色 */
+      font-weight: bold; /* 文本加粗 */
+  }
+</style>
+<style>
+.list-box {
+    border: 1px solid #ccc; /* 边框，类似文本框 */
+    border-radius: 5px; /* 圆角边框 */
+    padding: 10px; /* 内边距 */
+    max-width: auto; /* 最大宽度 */
+    height: 110px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    margin: 0; /* 移除默认的外边距 */
+    padding: 0; /* 调整以适应内部列表项的内边距 */
+    list-style: none; /* 移除列表项前的默认符号 */
+}
+
+.list-box li {
+    /* list-style: none; 移除列表项前的默认符号 */
+    padding: 5px 10px; /* 列表项内边距 */
+    cursor: pointer; /* 鼠标悬停时显示指针 */
+}
+
+.list-box li:hover {
+    background-color: #f0f0f0; /* 鼠标悬停时的背景色 */
+}
+
+.list-box li.selected {
+    background-color: #007bff; /* 选中状态的背景色 */
+    color: white; /* 选中状态的文字颜色 */
+}
+</style>
+{% endblock %}
+{% block title %}Highway Incidents Detection Platform{% endblock %}
+
+{% block content %}
+<div class="container mt-3 mb-3">
+    <h2 class="text-center">Automatic Highway Incidents Detection Platform</h2>
+    <h2 class="text-center mb-3">History</h2>
+    <hr class="border-success my-3">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group" style="height: auto;">
+              <label for="folderShow">1. Please select a highway:</label>
+                <ul class="list-box" id="highwayList">
+                    <!-- <li>I-4</li>
+                    <li>I-75</li>
+                    <li>I-275</li> -->
+                </ul>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="form-group" style="height: auto;">
+              <label for="folderShow">2. Please select a datetime:</label>
+                <ul class="list-box" id="datetimeList">
+                    <!-- <li>DateTime-1</li>
+                    <li>DateTime-2</li>
+                    <li>DateTime-3</li> -->
+                </ul>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="form-group">
+            <label for="detectionResults">Detection Results:</label>
+            <!-- <textarea class="form-control" id="detectionResults" rows="4"></textarea> -->
+            <div class="form-control" id="detectionResults" contenteditable="true"></div>
+            <label for="incidentTime">The Incident Scene is Located in:</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="form-control" id="incidentTime" contenteditable="true">N/A</div>
+            <!-- <label> seconds</label> -->
+          </div>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="form-group">
+                <label for="congestionLen">Congestion Length:</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="form-control" id="congestionLen" contenteditable="true">N/A</div>
+                <label> miles</label>
+                </div>
+                <label for="propagationSpeed">Propagation Speed:</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="form-control" id="propagationSpeed" contenteditable="true">N/A</div>
+                <label> feet/min</label>
+                </div>
+            </div>
+        </div>
+
+      </div>
+    
+      <!-- <div id="map" style="height:400px;width:100%;"></div> -->
+
+      <hr class="border-success my-3">
+
+    <div class="row">
+        <div class="col-12 col-md-6 d-flex flex-column justify-content-center align-items-center" style="height:350px;">
+        <!-- class="mb-3 mt-3" is used to control the top and bottom margin-->
+        <!-- <div class="form-group d-flex" style="flex: 1;"> -->
+            <label for="videoContainer" style="text-align: left; width: 100%; height: 50px">Video Playback:</label>
+            <!-- <textarea class="form-control" id="detectionResults" rows="4"></textarea> -->
+            <div id="videoContainer" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height:100%; width: 100%;">
+            <!-- 文本容器 -->
+            <div style="flex-grow: 0; z-index: 2; position: relative;">
+                <p style="font-size: 24px; font-weight: bold; text-align: center;">Click any dot on the map to show its related thermal video segment here.</p>
+            </div>
+        </div>
+        
+        <!-- </div> -->
+        </div>
+        <div class="col-12 col-md-6 d-flex flex-column justify-content-center align-items-center" style="height:350px;">
+        <!-- <div class="form-group d-flex" style="flex: 1;"> -->
+            <label for="map" style="text-align: left; width: 100%;">Visualization Map:</label>
+            <!-- <textarea class="form-control" id="detectionResults" rows="4"></textarea> -->
+            <div id="map" style="flex-grow: 1;width:100%;"></div>
+        <!-- </div> -->
+        </div>
+    </div>
+
+    <!-- <hr class="border-success my-3">
+
+    <div class="row">
+        <div class="col-12 col-md-6 d-flex flex-column justify-content-center align-items-center" style="height:300px;">
+            <label for="sceneContainer" style="text-align: left; width: 100%; height: 50px">Potential Incident Scene:</label>
+            <div id="sceneContainer" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height:100%; width: 100%;">
+            <div style="flex-grow: 0; z-index: 2; position: relative;">
+                <p style="font-size: 24px; font-weight: bold; text-align: center;">If a potential incident is detected, its scene will be displayed here.</p>
+            </div>
+        </div>
+        </div>
+        <div class="col-12 col-md-6 d-flex flex-column justify-content-center align-items-center" style="height:300px;">
+            <label for="sceneTextContainer" style="text-align: left; width: 100%;">Detailed Information:</label>
+            <div id="sceneTextContainer" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height:100%; width: 100%;">
+                <div style="flex-grow: 0; z-index: 2; position: relative;">
+                    <p style="font-size: 24px; font-weight: bold; text-align: center;">If a potential incident is detected, the video segment and timestamp of its occurrence will be displayed here.</p>
+                </div>
+            </div>
+        </div>
+    </div> -->
+      
+      <!-- <div class="row">
+        <div class="col-6 text-left d-flex align-items-center">
+          <div>
+            <p>For more details, please refer to: </p>
+            <p>
+              <a href="https://www.sum-lab.org/" target="_blank">USF Smart Urban Mobility Laboratory (SUM-Lab)</a>
+            </p>
+          </div>
+        </div>
+        <div class="col-6 text-right">
+          <img src="{{ url_for('static', filename='usf-sum_orig.png') }}" alt="usf-sum-logo" style="max-width: 100%; height: 70px; object-fit: contain;">
+        </div>
+      </div> -->
+  </div>
+  
+{% endblock %}
+
+
+{% block scripts %}
+  {{ super() }}
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACdWVzSXQcbGZjZ0DNifrobgeK1nmz7Yk&callback=initMap"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        let selectedHighwayDatetime = null;
+        document.addEventListener('DOMContentLoaded', () => {
+        //     var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        //     var messageShown = false;
+        //     socket.on('connect', () => {
+        //         socket.emit('join', {room: 'history'});
+        //     });
+        //     socket.on('clear', () => {
+        //         // 查找文档中所有的textarea元素
+        //         var textareas = document.querySelectorAll('textarea');
+        //         // 遍历每一个textarea，并清空其内容
+        //         textareas.forEach(function(textarea) {
+        //             textarea.value = '';
+        //         });
+        //   });
+          
+            // 假设函数fetchhighwayList()在页面加载时被调用以填充列表A
+            fetchHighwayList();
+        });
+        // 处理列表A中选项的点击事件
+        document.getElementById('highwayList').addEventListener('click', function(event) {
+            if (event.target.tagName === 'LI') {
+                // 移除先前选中的项的选中状态
+                const items = document.querySelectorAll(`#highwayList .selected`);
+                items.forEach(item => item.classList.remove('selected'));
+                
+                // 为当前点击的项添加选中状态
+                event.target.classList.add('selected');
+                
+                // 获取并处理选中项的文本内容
+                const selectedItemText = event.target.textContent;
+                document.getElementById('highwayList').dataset.selected = event.target.textContent;
+                
+                // 基于选中的项目名称更新列表B
+                fetchDatetimeList(selectedItemText); 
+                
+            }
+        });
+        // 处理列表B中选项的点击事件
+        document.getElementById('datetimeList').addEventListener('click', function(event) {
+            if (event.target.tagName === 'LI') {
+                // 移除先前选中的项的选中状态
+                const items = document.querySelectorAll(`#datetimeList .selected`);
+                items.forEach(item => item.classList.remove('selected'));
+                
+                // 为当前点击的项添加选中状态
+                event.target.classList.add('selected');
+                
+                // 获取并处理选中项的文本内容
+                const selectedItemText = event.target.textContent;
+
+                const highwayName = document.getElementById('highwayList').dataset.selected;
+                const highwayDatetime = highwayName + "/" + selectedItemText + "/";
+                selectedHighwayDatetime = highwayDatetime;
+                
+                // 发送选中的项目名称给服务器
+                fetchFinalResult(highwayDatetime); 
+            }
+        });
+
+        let map;
+        function initMap() {
+            let usf = {lat: 28.0587, lng: -82.4139}; // USF Tampa Campus的经纬度
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+                center: usf
+            });
+            // alertIncidentFlag = false;
+            // var marker = new google.maps.Marker({
+            //     position: usf,
+            //     map: map
+            // });
+        }
+
+        function parseCSVAndAddMarkers(csvString) {
+            const lines = csvString.split('\n');
+            let latSum = 0, lngSum = 0, count = 0;
+            let alertIncidentFlag = false;
+
+            lines.forEach(line => {
+                const columns = line.split(',');
+                if(columns.length >= 5) {
+                    const flag_text = columns[2].trim();
+                    let flag = 0;
+                    const lat = parseFloat(columns[3].trim());
+                    const lng = parseFloat(columns[4].trim());
+                    const videoName = columns[0].trim();
+                    if(flag_text === 'Incident Detected!') {
+                        flag = 2;
+                    } else if (flag_text === 'Congestion Detected!') {
+                        flag = 1;
+                    } else {
+                        flag = 0;
+                    }
+
+                    latSum += lat;
+                    lngSum += lng;
+                    count++;
+
+                    if(flag>0) {
+                        // uncomment this sentence to show alert when incident is detected
+                        // alertIncidentFlag = true;
+                    }
+
+                    // 在这一步，map 实例已经存在，可以添加标记
+                    addMarker({lat, lng, flag, videoName});
+                    
+                    if (count > 0) {
+                        map.setCenter({lat: latSum / count, lng: lngSum / count});
+                    }
+                }
+            });
+            if(alertIncidentFlag) {
+                setTimeout(() => {
+                    alert("Incidents found in this monitoring flight! Please check the map for details.");
+                }, 100); // 延迟100毫秒显示alert
+            }
+        }
+
+        function addMarker(location) {
+
+            const colorMap = {
+                0: '#00ff00', // 绿色
+                1: '#ffa500', // 橙色
+                2: '#ff0000'  // 红色
+            };
+
+            const marker = new google.maps.Marker({
+                position: {lat: location.lat, lng: location.lng},
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 6,
+                    fillColor: colorMap[location.flag] || '#00ff00', // default green
+                    fillOpacity: 0.8,
+                    strokeWeight: 2
+                },
+                id: location.videoName
+            });
+
+            // 添加点击事件监听器
+            google.maps.event.addListener(marker, 'click', function() {
+                const iframeHTML = `<iframe width="100%" height="100%" src="/video/${selectedHighwayDatetime+"processedFolder/"+location.videoName+'.mp4'}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                // 获取目标元素，并插入iframe
+                const targetElement = document.getElementById('videoContainer');
+                    if (targetElement) {
+                        targetElement.innerHTML = iframeHTML;
+                    }
+            });
+
+        }
+
+        function clearVideoPlayback() {
+            // 获取目标元素，并插入iframe
+          const targetElement = document.getElementById('videoContainer');
+            if (targetElement) {
+                targetElement.innerHTML = `
+                <div style="flex-grow: 0; z-index: 2; position: relative;">
+                    <p style="font-size: 24px; font-weight: bold; text-align: center;">Click any dot on the map to show its related thermal video here.</p>
+                </div>
+                `;
+            }
+        }
+
+        // 从服务器获取列表A数据并显示
+        function fetchHighwayList() {
+            // 示例：使用fetch API获取数据
+            fetch('/get-highway-list')
+            .then(response => response.json())
+            .then(data => {
+                const highwayList = document.getElementById('highwayList');
+                highwayList.innerHTML = ''; // 清空列表
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    // li.classList.add('list-group-item');
+                    highwayList.appendChild(li);
+                });
+            });
+        }
+
+        // 根据列表A的选择从服务器获取列表B数据并显示
+        function fetchDatetimeList(selectedItem) {
+            fetch('/get-datetime-list', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({selectedItem: selectedItem})
+            })
+            .then(response => response.json())
+            .then(data => {
+                const datetimeList = document.getElementById('datetimeList');
+                datetimeList.innerHTML = ''; // 清空列表
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    // li.classList.add('list-group-item');
+                    datetimeList.appendChild(li);
+                });
+                showDetectionResults('');
+                initMap();
+                clearVideoPlayback();
+            });
+        }
+
+        // 根据列表B的选择从服务器获取最终结果并显示
+        function fetchFinalResult(selectedItem) {
+            fetch('/get-detection-result', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({selectedItem: selectedItem})
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    // 假设服务器返回的错误信息是JSON格式
+                    return response.json().then(errorData => {
+                        showDetectionResults('');
+                        initMap();
+                        clearVideoPlayback();
+                        setTimeout(() => {
+                            // 使用弹窗显示错误信息
+                            alert(`Error: ${errorData.error}`);
+                            // 抛出错误，以便可以被后续的catch块捕获
+                            throw new Error(errorData.error);
+                        }, 100);
+                    });
+                }
+            })
+            .then(data => {
+                // const finalResult = document.getElementById('detectionResults');
+                // finalResult.innerHTML = `最终结果: ${data.results}`;
+                // console.log(data.images);
+                showDetectionResults('');
+                initMap();
+                clearVideoPlayback();
+                updateValuesFromText(data.congestion);
+                // if (data.images.length > 0) {showIncidentScene(data.images);}
+                // else {clearIncidentScene();}
+                showDetectionResults(data.results);
+                parseCSVAndAddMarkers(data.results);
+                
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateValuesFromText(text) {
+            // 如果 text 为空字符串，则直接设置 div 并返回
+            if (!text.trim()) {
+                document.getElementById("congestionLen").innerText = "N/A";
+                document.getElementById("propagationSpeed").innerText = "N/A";
+                return; // 直接返回，避免后续不必要的处理
+            }
+            // 拆分行
+            let lines = text.split("\n");
+
+            // 初始化变量
+            let lengthValue = "";
+            let propagationValue = "";
+            let incidentTime = "";
+
+            // 遍历行，查找 "length:" 和 "propagation:"
+            lines.forEach(line => {
+                if (line.startsWith("length:")) {
+                    lengthValue = line.split(":")[1].trim(); // 获取冒号后数据
+                } else if (line.startsWith("propagation:")) {
+                    propagationValue = line.split(":")[1].trim();
+                } else if (line.startsWith("incidentTime:")) {
+                    incidentTime = line.split(":")[1].trim();
+                }
+            });
+
+            // 将数据填充到 HTML 的 div
+            document.getElementById("congestionLen").innerText = lengthValue;
+            document.getElementById("propagationSpeed").innerText = propagationValue;
+            document.getElementById("incidentTime").innerText = incidentTime;
+        }
+
+        // function showIncidentScene(data) {
+        //     const sceneContainer = document.getElementById('sceneContainer');
+        //     sceneContainer.innerHTML = "";  // 清空旧图片
+        //     data.forEach(image => {
+        //         let img = document.createElement("img");
+        //         img.src = `/img/${selectedHighwayDatetime+image}`;  // 请确保 Flask 能正确提供这些图片
+        //         img.style.maxHeight = "95%";
+        //         sceneContainer.appendChild(img);
+        //     });
+        //     // Then, generate formatted text with line breaks
+        //     const formattedText = data.map(image => {
+        //         let match = image.match(/(\d{8}_\d{6})-(\d+)s/);
+        //         if (match) {
+        //             return `Video segment: ${match[1]}, Timestamp: ${match[2]}s`;
+        //         }
+        //         return '';
+        //     }).filter(text => text).join('<br>');
+        //     // Update the text container with the formatted text
+        //     const sceneTextContainer = document.getElementById('sceneTextContainer');
+        //     sceneTextContainer.innerHTML = `
+        //         <div style="flex-grow: 0; z-index: 2; position: relative;">
+        //             <p style="font-size: 20px; font-weight: bold; text-align: center;">${formattedText}</p>
+        //         </div>`;
+        // }
+
+        function clearIncidentScene() {
+            const sceneContainer = document.getElementById('sceneContainer');
+            sceneContainer.innerHTML = `
+                <div style="flex-grow: 0; z-index: 2; position: relative;">
+                    <p style="font-size: 24px; font-weight: bold; text-align: center;">If an incident is detected, its scene will be displayed here.</p>
+                </div>`;  // 清空旧图片
+            const sceneTextContainer = document.getElementById('sceneTextContainer');
+            sceneTextContainer.innerHTML = `
+                <div style="flex-grow: 0; z-index: 2; position: relative;">
+                    <p style="font-size: 24px; font-weight: bold; text-align: center;">If an incident is detected, the video segment and timestamp of its occurrence will be displayed here.</p>
+                </div>`;  // 清空旧文本
+        }
+
+        function showDetectionResults(data) {
+            //<div> Implementation: can realize changing font color but may clear previous content when updating
+            const detectionResults = document.getElementById('detectionResults');
+            // 将消息分割成行
+            const lines = data.split('\n');
+            // 清空之前的内容
+            detectionResults.innerHTML = '';
+            // 遍历每一行
+            lines.forEach((line) => {
+                // 检查这一行是否包含"detected"
+                if (line.includes("Detected")) {
+                    // 如果包含"detected"，则以红色加粗格式显示
+                    detectionResults.innerHTML += `<span class="detected">${line}</span><br>`;
+                } else {
+                    // 否则，正常显示这一行
+                    detectionResults.innerHTML += `<span>${line}</span><br>`;
+                }
+            });
+          }
+
+
+    </script>
+        
+
+
+{% endblock %}

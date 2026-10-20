@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{{ super() }}
+<link rel="shortcut icon" href="{{ url_for('static', filename='icons8-UAV-64.png') }}">
+<style>
+  #videoFeed {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    background: #000;
+    border-radius: 8px;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .status-running { background: #d4edda; color: #155724; }
+  .status-stopped { background: #f8d7da; color: #721c24; }
+  .status-idle { background: #e2e3e5; color: #383d41; }
+  .stat-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #006747;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+  }
+  .incident-item {
+    padding: 8px 12px;
+    border-left: 3px solid #dc3545;
+    background: #fff5f5;
+    margin-bottom: 6px;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.85rem;
+  }
+  .incident-item.no-incident {
+    border-left-color: #28a745;
+    background: #f5fff5;
+  }
+  .incident-item.congestion {
+    border-left-color: #ffc107;
+    background: #fffdf5;
+  }
+  .outri-gate-panel {
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+  .outri-allow { background: #d4edda; color: #155724; }
+  .outri-deny { background: #f8d7da; color: #721c24; }
+  .outri-idle { background: #e2e3e5; color: #383d41; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="row">
+    <!-- Video Feed -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Real-Time Video Feed</h5>
+          <span id="statusBadge" class="status-badge status-idle">Idle</span>
+        </div>
+        <div class="card-body p-2">
+          <img id="videoFeed" src="" alt="No video feed — start real-time detection to begin">
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="row mt-3">
+        <div class="col-3">
+          <div class="stat-card">
+            <div class="stat-value" id="fpsValue">0</div>
+            <div class="stat-label">FPS</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-card">
+            <div class="stat-value" id="frameValue">0</div>
+            <div class="stat-label">Frames</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-card">
+            <div class="stat-value" id="detectionValue">0</div>
+            <div class="stat-label">Detections</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-card">
+            <div class="stat-value" id="backendValue">-</div>
+            <div class="stat-label">Backend</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Controls</h5>
+        </div>
+        <div class="card-body">
+          <div id="outriGatePanel" class="outri-gate-panel outri-idle mb-3">
+            <strong>Outri Gate:</strong> <span id="outriGateText">No stream gate decision yet.</span>
+          </div>
+
+          <div class="mb-3">
+            <label for="videoSource" class="form-label">Video Source</label>
+            <select id="videoSource" class="form-select">
+              <option value="0">HDMI Capture (USB /dev/video0)</option>
+              <option value="1">USB Camera (/dev/video1)</option>
+              <option value="csi">CSI Camera (Jetson)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="direction" class="form-label">Drone Direction</label>
+            <select id="direction" class="form-select">
+              <option value="left">From Left to Right</option>
+              <option value="right">From Right to Left</option>
+            </select>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button id="btnStart" class="btn btn-success btn-lg" onclick="startRealtime()">
+              Start Real-Time Detection
+            </button>
+            <button id="btnStop" class="btn btn-danger btn-lg" onclick="stopRealtime()" disabled>
+              Stop Detection
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incident Log -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="mb-0">Incident Log</h5>
+        </div>
+        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+          <div id="incidentLog">
+            <p class="text-muted">No incidents detected yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  let statusInterval = null;
+
+  function startRealtime() {
+    const source = document.getElementById('videoSource').value;
+    const direction = document.getElementById('direction').value;
+
+    fetch('/start-realtime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: source, direction: direction })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      document.getElementById('videoFeed').src = '/realtime-feed?' + Date.now();
+      startStatusPolling();
+    })
+    .catch(err => alert('Error: ' + err));
+  }
+
+  function stopRealtime() {
+    fetch('/stop-realtime', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+      document.getElementById('videoFeed').src = '';
+      stopStatusPolling();
+      updateStatusBadge('stopped');
+    });
+  }
+
+  function startStatusPolling() {
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = setInterval(fetchStatus, 1000);
+  }
+
+  function stopStatusPolling() {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+      statusInterval = null;
+    }
+  }
+
+  function fetchStatus() {
+    fetch('/realtime-status')
+    .then(r => r.json())
+    .then(data => {
+      updateOutriGate(data.outri_gate);
+      document.getElementById('fpsValue').textContent = data.fps || 0;
+      document.getElementById('frameValue').textContent = (data.frame_count || 0).toLocaleString();
+      document.getElementById('detectionValue').textContent = (data.detection_count || 0).toLocaleString();
+      document.getElementById('backendValue').textContent = data.backend || '-';
+      updateStatusBadge(data.status || 'idle');
+
+      // Update incident log
+      if (data.incidents && data.incidents.length > 0) {
+        const logDiv = document.getElementById('incidentLog');
+        let html = '';
+        data.incidents.slice().reverse().forEach(inc => {
+          let cls = 'incident-item';
+          if (inc.label === 'Normal Traffic') cls += ' no-incident';
+          else if (inc.label === 'Congestion Propagating') cls += ' congestion';
+          html += `<div class="${cls}">
+            <strong>${inc.label}</strong>
+            <span class="float-end text-muted">${inc.incident_ratio}% incident</span>
+            <br><small>${inc.timestamp} | ${inc.trajectory_count} trajectories</small>
+          </div>`;
+        });
+        logDiv.innerHTML = html;
+      }
+
+      if (!data.running && data.status === 'stopped') {
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+        stopStatusPolling();
+      }
+    })
+    .catch(() => {});
+  }
+
+  function updateOutriGate(gateEnvelope) {
+    const panel = document.getElementById('outriGatePanel');
+    const text = document.getElementById('outriGateText');
+    if (!gateEnvelope || !gateEnvelope.gate) {
+      panel.className = 'outri-gate-panel outri-idle mb-3';
+      text.textContent = 'No stream gate decision yet.';
+      return;
+    }
+    const gate = gateEnvelope.gate;
+    const context = gateEnvelope.context || {};
+    const label = `${context.drone_id || 'unknown drone'} / ${context.mission_id || 'unknown mission'}`;
+    if (gate.status === 'ALLOW') {
+      panel.className = 'outri-gate-panel outri-allow mb-3';
+      text.textContent = `ALLOW: ${label} — ${gate.reason || 'allowed'}`;
+    } else {
+      panel.className = 'outri-gate-panel outri-deny mb-3';
+      text.textContent = `DENY: ${label} — ${gate.reason || 'denied'}`;
+    }
+  }
+
+  function updateStatusBadge(status) {
+    const badge = document.getElementById('statusBadge');
+    badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    badge.className = 'status-badge status-' + (status === 'running' ? 'running' : status === 'stopped' ? 'stopped' : 'idle');
+  }
+  // Always poll Outri status, even when stream commands are triggered externally.
+  fetchStatus();
+  startStatusPolling();
+
+</script>
+{% endblock %}
