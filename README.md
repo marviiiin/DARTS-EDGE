@@ -1,7 +1,7 @@
 # DARTS-Edge: Real-Time Drone-Assisted Traffic Incident Detection and VLM Reporting on Edge Device
 
 [![Paper](https://img.shields.io/badge/Paper-WACV%202027-blue)]()
-[![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-yellow)](https://huggingface.co/datasets/marviiiin/DARTS-thermal)
+[![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-yellow)](https://huggingface.co/datasets/marviiinnn123/DARTS-thermal)
 [![Original DARTS](https://img.shields.io/badge/Original-DARTS-green)](https://github.com/marviiiin/DARTS-project)
 
 ## Overview
@@ -25,7 +25,7 @@ Drone (Autel EVO II) → Live Deck → HDMI Capture → Jetson Orin Nano
                                     │  Lucas-Kanade Optical Flow (CPU)   │
                                     │  Trajectory Image Generation       │
                                     │  TCD-Net Classification (TRT FP16) │
-                                    │  Decision Logic (τ_I≥0.3, τ_N≥0.7)│
+                                    │  Decision Logic (τ_I≥0.3, τ_C≥0.3)│
                                     │  VLM Incident Reporting            │
                                     └─────────────────┬──────────────────┘
                                                       │
@@ -122,7 +122,7 @@ Download the pre-trained model weights and place them in the `models/` directory
 ## Dataset
 
 The drone-based thermal traffic monitoring dataset is available on HuggingFace:
-[https://huggingface.co/datasets/marviiiin/DARTS-thermal](https://huggingface.co/datasets/marviiiin/DARTS-thermal)
+[https://huggingface.co/datasets/marviiinnn123/DARTS-thermal](https://huggingface.co/datasets/marviiinnn123/DARTS-thermal)
 
 ## Citation
 
